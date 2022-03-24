@@ -1,10 +1,7 @@
 # LaTTe_RecSys
 
-In the CoFFee model [Frolov and Oseledets, 2016], ratings are represented as a categorical variables and
-interactions are encoded into a third-order user-item-rating tensor. On lectures, we discussed that users may
-have individual rating scales. Some users may rarely rate movies with rating 5, while other may always
-assign 5 stars to almost any movie they watched. Apparently, these users have different perception of the
-rating scale and its relation to a movie quality. So even if these users will watch the same movies, there will
+In the CoFFee model [Frolov and Oseledets, 2016](https://arxiv.org/pdf/1807.10634.pdf), ratings are represented as a categorical variables and
+interactions are encoded into a third-order user-item-rating tensor. On lectures, we discussed that users may have individual rating scales. Some users may rarely rate movies with rating 5, while other may always assign 5 stars to almost any movie they watched. Apparently, these users have different perception of the rating scale and its relation to a movie quality. So even if these users will watch the same movies, there will
 be a discrepancy in signals from the rating behavior, which will affect the ability of our recommender system
 to properly extract patterns in data.
 One hypothetical way to mitigate this problem is to introduce “rating scale smoothing” by imposing

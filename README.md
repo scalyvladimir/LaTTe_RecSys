@@ -32,3 +32,38 @@ To get a local copy up and running follow these simple example steps.
    ```sh
    git clone https://github.com/scalyvladimir/LaTTe_RecSys
    ```
+
+<!-- ROADMAP -->
+## Roadmap
+
+Our repo follows steps mentioned in [2nd](https://drive.google.com/file/d/1QSgaFGV3dygyWZ2JUkI_GHgAytU5b-sI/view) project description
+
+- [main branch](https://github.com/ctrlzet/imgrestore/tree/main) consists of two directories correspoding to [training](https://github.com/ctrlzet/imgrestore/tree/main/training) and [inference](https://github.com/ctrlzet/imgrestore/tree/main/inference) procedures each. This is all about replication of original paper + implication of projection layer. User required to follow a step-by-step intructions mentioned in `.ipynb` files located in same path.
+- The first task covering research solved [here](https://github.com/ctrlzet/imgrestore/blob/main/Research_task1.pdf).
+- Finally, ISTA/FISTA algorithms stored here: [1](https://github.com/ctrlzet/imgrestore/tree/ISTA_implementation) and [2](https://github.com/ctrlzet/imgrestore/blob/FISTA_implementation/FISTA.ipynb).
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<!-- CONTACT -->
+## Contact
+
+Vladimir Chernyy - Vladimir.Chernyy@skoltech.ru - author of README.md
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
+[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
+
+<p align="right">(<a href="#top">back to top</a>)</p>

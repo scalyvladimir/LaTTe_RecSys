@@ -1,4 +1,4 @@
-# LaTTe_RecSys
+# Collaborative Filtering with smooth ratings scale(LaTTe_RecSys), Skoltech RecSys Course 2022
 
 [Vladimir Chernyy](https://github.com/scalyvladimir), [Elizaveta Makhneva](https://github.com/elizacc)
 

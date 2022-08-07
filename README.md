@@ -1,5 +1,5 @@
 # latte_recsys
-Storage for implementations used in "Tensor-based Collaborative Filtering With Smooth Ratings Scale paper"(*place for arxiv link*).
+Storage for implementations used in ["Tensor-based Collaborative Filtering With Smooth Ratings Scale paper"](https://arxiv.org/abs/2205.05070).
 
 ANONYMOUS AUTHOR(S)
 

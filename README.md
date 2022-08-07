@@ -19,7 +19,7 @@ To get a local copy up and running follow these simple example steps.
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/anonymouspap/latte_recsys.git
+   git clone https://github.com/scalyvladimir/latte_recsys.git
    ```
    
 2. Install all the demanded packages with:

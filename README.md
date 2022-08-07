@@ -1,7 +1,6 @@
-# latte_recsys
 Storage for implementations used in ["Tensor-based Collaborative Filtering With Smooth Ratings Scale paper"](https://arxiv.org/abs/2205.05070).
 
-ANONYMOUS AUTHOR(S)
+[Vladimir Chernyy](https://github.com/scalyvladimir), [Elizaveta Makhneva](https://github.com/elizacc), [Nikita Marin](https://github.com/KseverNikita), [Maria Lysyuk](https://github.com/marialysyuk)
 
 **Problem statement:**
 

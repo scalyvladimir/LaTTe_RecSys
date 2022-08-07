@@ -9,11 +9,17 @@ from scipy.linalg import solve_banded
 
 from polara.lib.sparse import arrange_indices
 from polara.lib.tensor import ttm3d_seq, ttm3d_par
+
 try:
     from sklearn.utils.extmath import randomized_svd
 except ImportError:
     randomized_svd = None
-
+    
+from evaluation import topn_recommendations, downvote_seen_items
+from scipy.linalg import solve_triangular
+from polara.lib.sparse import tensor_outer_at
+from scipy.sparse import csr_matrix
+from numba import jit
 
 class SeqTFError(Exception):
     pass
@@ -25,12 +31,145 @@ def initialize_columnwise_orthonormal(dims, random_state=None):
     u = np.linalg.qr(u, mode='reduced')[0]
     return u
 
+def tf_scoring(params, data, data_description, context=["3+4+5"]):
+    user_factors, item_factors, feedback_factors, attention_matrix = params
+    userid = data_description["users"]
+    itemid = data_description["items"]
+    feedback = data_description["feedback"]
+    
+    
+    data = data.sort_values(userid)
+    useridx = data[userid]
+    itemidx = data[itemid].values
+    ratings = data[feedback].values
+    
+    ratings = ratings - data_description['min_rating']
+    
+    n_users = useridx.nunique()
+    n_items = data_description['n_items']
+    n_ratings = data_description['n_ratings']
+    
+    inv_attention = solve_triangular(attention_matrix, np.eye(data_description['n_ratings']), lower=True) # NEW
+    
+    tensor_outer = tensor_outer_at('cpu')
+    matrix_softmax = inv_attention.T @ feedback_factors
+    
+    if (n_ratings == 10):
+        coef = 2
+    else:
+        coef = 1
+        
+    if (context == "5"): # make softmax 
+        inv_aT_feedback = matrix_softmax[(-1 * coef) , :]
+    elif (context == "4+5"):
+        inv_aT_feedback = np.sum(matrix_softmax[(-2 * coef):, :], axis=0)
+    elif (context == "3+4+5"):
+        inv_aT_feedback = np.sum(matrix_softmax[(-3 * coef):, :], axis=0)
+    #elif (context == "2+3+4+5"):
+    #    inv_aT_feedback = np.sum(matrix_softmax[-4:, :], axis=0)
+    elif (context == "3+4+5-2-1"):
+        inv_aT_feedback = np.sum(matrix_softmax[(-3 * coef):, :], axis=0) - np.sum(matrix_softmax[:(2 * coef), :], axis=0)
+        
+    scores = tensor_outer(
+        1.0,
+        item_factors,
+        attention_matrix @ feedback_factors,
+        itemidx,
+        ratings
+    )
+    scores = np.add.reduceat(scores, np.r_[0, np.where(np.diff(useridx))[0]+1]) # sort by users
+    scores = np.tensordot(
+        scores,
+        inv_aT_feedback,
+        axes=(2, 0)
+    ).dot(item_factors.T)
+
+    return scores
+
+def model_evaluate(recommended_items, holdout, holdout_description, alpha=3, topn=10, dcg=False):
+    itemid = holdout_description['items']
+    rateid = holdout_description['feedback']
+    holdout_items = holdout[itemid].values
+    alpha = 3 if holdout_description["n_ratings"] == 5 else 6
+    n_test_users = recommended_items.shape[0]
+    assert recommended_items.shape[0] == len(holdout_items)
+    
+    hits_mask = recommended_items[:, :topn] == holdout_items.reshape(-1, 1)
+    pos_mask = (holdout[rateid] >= alpha).values
+    neg_mask = (holdout[rateid] < alpha).values
+    
+    # HR calculation
+    #hr = np.sum(hits_mask.any(axis=1)) / n_test_users
+    hr_pos = np.sum(hits_mask[pos_mask].any(axis=1)) / n_test_users
+    hr_neg = np.sum(hits_mask[neg_mask].any(axis=1)) / n_test_users
+    hr = hr_pos + hr_neg
+    
+    # MRR calculation
+    hit_rank = np.where(hits_mask)[1] + 1.0
+    mrr = np.sum(1 / hit_rank) / n_test_users
+    pos_hit_rank = np.where(hits_mask[pos_mask])[1] + 1.0
+    mrr_pos = np.sum(1 / pos_hit_rank) / n_test_users
+    neg_hit_rank = np.where(hits_mask[neg_mask])[1] + 1.0
+    mrr_neg = np.sum(1 / neg_hit_rank) / n_test_users
+    
+    # Matthews correlation
+    TP = np.sum(hits_mask[pos_mask]) # + 
+    FP = np.sum(hits_mask[neg_mask]) # +
+    
+    cond = (hits_mask.sum(axis = 1) == 0)
+    FN = np.sum(cond[pos_mask])
+    TN = np.sum(cond[neg_mask])
+    N = TP+FP+TN+FN
+    S = (TP+FN)/N
+    P = (TP+FP)/N
+    C = (TP/N - S*P) / np.sqrt(P*S*(1-P)*(1-S))
+    
+    # DCG calculation
+    if dcg:
+        pos_hit_rank = np.where(hits_mask[pos_mask])[1] + 1.0
+        neg_hit_rank = np.where(hits_mask[neg_mask])[1] + 1.0
+        ndcg = np.mean(1 / np.log2(pos_hit_rank+1))
+        ndcl = np.mean(1 / np.log2(neg_hit_rank+1))
+    
+    # coverage calculation
+    n_items = holdout_description['n_items']
+    cov = np.unique(recommended_items).size / n_items
+    if dcg:
+        return hr, hr_pos, hr_neg, mrr, mrr_pos, mrr_neg, cov, C, ndcg, ndcl
+    else:
+        return hr, hr_pos, hr_neg, mrr, mrr_pos, mrr_neg, cov, C
+
+def make_prediction(tf_scores, holdout, data_description, mode, context="", print_mode=True):
+    if (mode and print_mode):
+        print(f"for context {context} evaluation ({mode}): \n")
+    for n in [5, 10, 20]:
+        tf_recs = topn_recommendations(tf_scores, n)
+        hr, hr_pos, hr_neg, mrr, mrr_pos, mrr_neg, cov, C = model_evaluate(tf_recs, holdout, data_description, topn=n)
+        if (print_mode):
+            print(f"HR@{n} = {hr:.4f}, MRR@{n} = {mrr:.4f}, Coverage@{n} = {cov:.4f}")
+            print(f"HR_pos@{n} = {hr_pos:.4f}, HR_neg@{n} = {hr_neg:.4f}")
+            print(f"MRR_pos@{n} = {mrr_pos:.4f}, MRR_neg@{n} = {mrr_neg:.4f}")
+            print(f"Matthews@{n} = {C:.4f}")
+            print("-------------------------------------")
+        if (n == 10):
+            mrr10 = mrr
+            hr10 = hr
+            c10 = C
+    return mrr10, hr10, c10
 
 def core_growth_callback(growth_tol):
-    def check_core_growth(step, core_norm, factors):
+    def check_core_growth(step, core_norm, factors, tf_params, best_metric, testset, holdout, data_description):
         g_growth = (core_norm - check_core_growth.core_norm) / core_norm
         check_core_growth.core_norm = core_norm
         print(f'growth of the core: {g_growth}')
+        tf_scores = tf_scoring(tf_params, testset, data_description, "4+5")
+        downvote_seen_items(tf_scores, testset, data_description)
+        cur_mrr, cur_hr, cur_C = make_prediction(tf_scores, holdout, data_description, "Validation", "4+5", print_mode=False)
+        if (cur_C <= best_metric):
+            print(f'Metric is no more growing. Best metric: {best_metric}.')
+            raise StopIteration
+        else:
+            return cur_C
         if g_growth < growth_tol:
             print(f'Core is no longer growing. Norm of the core: {core_norm}.')
             raise StopIteration
@@ -39,15 +178,16 @@ def core_growth_callback(growth_tol):
 
 
 def sa_hooi(
-        idx, val, shape, mlrank, attention_matrix, scaling_weights,
+        idx, val, shape, mlrank, attention_matrix, scaling_weights, testset, holdout, data_description,
         max_iters = 10,
-        parallel_ttm = False,
+        parallel_ttm = (True, True, True),
         growth_tol = 0.001,
         randomized=True,
         seed = None,
         iter_callback=None,
     ):
 
+    best_metric = -1
     assert valid_mlrank(mlrank)
     n_users, n_items, n_positions = shape
     r0, r1, r2 = mlrank
@@ -91,12 +231,13 @@ def sa_hooi(
         ua = attention_matrix.dot(u2)
 
         factors = (u0, u1, u2)
+        tf_params = u0, u1, u2, attention_matrix
         try:
-            iter_callback(step, np.linalg.norm(ss), factors)
+            cur_metric = iter_callback(step, np.linalg.norm(ss), factors, tf_params, best_metric, testset, holdout, data_description)
+            best_metric = cur_metric
         except StopIteration:
             break
     return factors
-
 
 def exp_decay(decay_factor, n):
     return np.e**(-(n-1)*decay_factor)

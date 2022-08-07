@@ -1,24 +1,13 @@
-# LaTTe_RecSys
-# Collaborative Filtering with smooth ratings scale, Skoltech RecSys Course 2022
+# latte_recsys
+Storage for implementations used in "Tensor-based Collaborative Filtering With Smooth Ratings Scale paper"(*place for arxiv link*).
 
-[Vladimir Chernyy](https://github.com/scalyvladimir), [Elizaveta Makhneva](https://github.com/elizacc), [Nikita Marin](https://github.com/KseverNikita), [Maria Lysyuk](https://github.com/marialysyuk)
+ANONYMOUS AUTHOR(S)
 
 **Problem statement:**
 
-In the CoFFee model [Frolov and Oseledets, 2016](https://arxiv.org/pdf/1807.10634.pdf), ratings are represented as a categorical variables and
-interactions are encoded into a third-order user-item-rating tensor. On lectures, we discussed that users may have individual rating scales. Some users may rarely rate movies with rating 5, while other may always assign 5 stars to almost any movie they watched. Apparently, these users have different perception of the rating scale and its relation to a movie quality. So even if these users will watch the same movies, there will
-be a discrepancy in signals from the rating behavior, which will affect the ability of our recommender system
-to properly extract patterns in data.
+While there are many possible inconsistencies in users' perception, which is not considered in the latest RecSys papers, this work aims to solve the problem of different perception of the rating scale by users. Consider the following example. For some people giving a 5 star rating to an item is an extraordinary event, they do it rarely and only in exceptional cases. Other users are more generous and most of their ratings are 4 and 5 stars. This leads to a situation where the recommender system treats different ratings as different signals which may be misleading. For example, given two users where the first one rated three last films as 3, 4, 4 and another user rated exactly the same films as 4, 5, 5, we should understand that these are the same sets of preferences. To tackle this problem, this work imposes some notion of similarity. Our proposed model LaTTe(latent + attention) tested against baseline approaches together with one, based on original [paper](https://arxiv.org/abs/1802.05814).
 
-One hypothetical way to mitigate this problem is to introduce “rating scale smoothing” by imposing
-some notion of similarity or proximity between different values of ratings. Clearly, rating 4 and 5 should be
-closer to each other than ratings 3 and 5. The smoothing effect can be achieved with the hybrid formulation
-similarly to the way an attention mechanism was used in Sequential Tensor Factorization model in Lecture
-10.
-
-Your task is to implement this idea within the CoFFee model. Adapt the code from Lecture 10 accordingly.
-The triangular attention matrix must now be replaced with the Cholesky factor of a rating similarity matrix.
-Try several different similarity measures. Perform comparative study of the smoothed version of CoFFee with the original one. Report your finding and explain the obtained results. You can use standard evaluation metrics in this task. Make sure to fairly tune both models and compare their optimal variants. You can use a Movielens dataset for your experiments.
+This codebase is designed for tuning and training all the models, mentioned in "Tensor-based Collaborative Filtering With Smooth Ratings Scale paper". It is particularly based on [Polara framework](https://github.com/evfro/polara.git).
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -30,11 +19,24 @@ To get a local copy up and running follow these simple example steps.
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/scalyvladimir/LaTTe_RecSys
+   git clone https://github.com/anonymouspap/latte_recsys.git
    ```
+   
+2. Install all the demanded packages with:
+   ```sh
+   pip3 install -r requirements.txt
+   ```
+   
+### Execution
+   
+1. To start tuning+training+testing process of ALL models run our code in the following way:
+  
+2. Pick dataset(*one of the following*) accoding to the hints in code: ["Movielens_1M", "Movielens_10M", "Video_Games", "CDs_and_Vinyl", "Electronics", "Video_Games_nf"], *eg.* Movilens_1M.
 
-<!-- ROADMAP -->
-## Roadmap
+3. Run the script in the following fashion: 
+  ```sh
+   python3 main.py Movilens_1M > output.txt
+   ```
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -50,10 +52,6 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<!-- CONTACT -->
-## Contact
-
-Vladimir Chernyy - Vladimir.Chernyy@skoltech.ru - author of README.md
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
